@@ -1,1 +1,135 @@
+import pygame
+import sys
+import random
 
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("2D Bosses Game Example")
+
+# Colors
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+
+# FPS
+FPS = 60
+clock = pygame.time.Clock()
+
+# Player class
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((40, 60))
+        self.image.fill((0, 100, 255))
+        self.rect = self.image.get_rect(center=(WIDTH//2, HEIGHT - 70))
+        self.speed = 5
+        self.health = 100
+
+    def update(self, keys_pressed):
+        if keys_pressed[pygame.K_LEFT] and self.rect.left > 0:
+            self.rect.x -= self.speed
+        if keys_pressed[pygame.K_RIGHT] and self.rect.right < WIDTH:
+            self.rect.x += self.speed
+        if keys_pressed[pygame.K_UP] and self.rect.top > 0:
+            self.rect.y -= self.speed
+        if keys_pressed[pygame.K_DOWN] and self.rect.bottom < HEIGHT:
+            self.rect.y += self.speed
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+# Boss class
+class Boss(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((120, 120))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect(center=(WIDTH//2, 100))
+        self.health = 300
+        self.max_health = 300
+        self.speed = 2
+        self.direction = 1  # 1 = right, -1 = left
+        self.attack_cooldown = 60  # frames
+        self.attack_timer = 0
+
+    def update(self):
+        # Move left and right
+        self.rect.x += self.speed * self.direction
+        if self.rect.right > WIDTH or self.rect.left < 0:
+            self.direction *= -1
+
+        # Attack timer countdown
+        if self.attack_timer > 0:
+            self.attack_timer -= 1
+
+    def attack(self):
+        if self.attack_timer == 0:
+            self.attack_timer = self.attack_cooldown
+            return True  # Attack performed
+        return False
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+        # Draw health bar
+        self.draw_health_bar(surface)
+
+    def draw_health_bar(self, surface):
+        bar_width = 120
+        bar_height = 10
+        fill = (self.health / self.max_health) * bar_width
+        outline_rect = pygame.Rect(self.rect.left, self.rect.top - 20, bar_width, bar_height)
+        fill_rect = pygame.Rect(self.rect.left, self.rect.top - 20, fill, bar_height)
+        pygame.draw.rect(surface, RED, fill_rect)
+        pygame.draw.rect(surface, WHITE, outline_rect, 2)
+
+
+# Main game loop
+def main():
+    player = Player()
+    boss = Boss()
+    all_sprites = pygame.sprite.Group()
+    all_sprites.add(player)
+    all_sprites.add(boss)
+
+    font = pygame.font.SysFont(None, 36)
+    running = True
+
+    while running:
+        clock.tick(FPS)
+        keys = pygame.key.get_pressed()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        # Update player and boss
+        player.update(keys)
+        boss.update()
+
+        # Boss attack logic (simple example: boss attacks every cooldown)
+        if boss.attack():
+            # This is where you'd implement projectiles or damage to player
+            print("Boss attacks!")
+
+        # Clear screen
+        screen.fill(BLACK)
+
+        # Draw everything
+        player.draw(screen)
+        boss.draw(screen)
+
+        # Display player health
+        health_text = font.render(f"Player Health: {player.health}", True, WHITE)
+        screen.blit(health_text, (10, HEIGHT - 40))
+
+        pygame.display.flip()
+
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    main()
